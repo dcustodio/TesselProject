@@ -115,7 +115,7 @@ ambient.on('ready', function () {
                   json: false,
                   method: 'PUT',
                   headers: {'Content-Type':'text/plain'},
-                  body: sounddata.toFixed(8)
+                  body: lightdata.toFixed(8)
               }, function (error, response, body) {
 
 
@@ -140,7 +140,7 @@ ambient.on('ready', function () {
                   json: false,
                   method: 'PUT',
                   headers: {'Content-Type':'text/plain'},
-                  body: lightdata.toFixed(8)
+                  body: sounddata.toFixed(8)
               }, function (error, response, body) {
                   console.log(response.statusCode);
 

@@ -18,7 +18,7 @@ var climate = climatelib.use(tessel.port['B']);
 request(entity.context_broker + '/version', function (error, response, body) {
     if (!error && response.statusCode == 200) {
         var res = JSON.parse(body);
-        console.log(res) 
+        console.log(res)
     }
 });
 
@@ -61,76 +61,123 @@ lwtm2m.client.register('127.0.0.1', config.server.port,  'testEndpoint',
     console.log('Listening');
 });*/
 
-
+var leds = tessel.led;
+// ERR - Red
+var red = leds[0];
+// WLAN - Amber
+var amber = leds[1];
+// LED0 - Green
+var green = leds[2];
+// LED1 - Blue
+var blue = leds[3];
 
 ambient.on('ready', function () {
   // Get points of light and sound data.
   setInterval( function () {
     ambient.getLightLevel( function(err, lightdata) {
-        console.log(err);
-      if (err) throw err;
-      ambient.getSoundLevel( function(err, sounddata) {
-          console.log(err);
-
-          if (err) throw err;
-       var date = new Date();
-        console.log(date.toString() +"Light level:", lightdata.toFixed(8), " ", "Sound Level:", sounddata.toFixed(8));
-        //tessel.led[2].toggle();
 
 
-          request({
-              uri: entity.context_broker +'/v2/entities/viur-vessel/attrs/light/value',
-              json: false,
-              method: 'PUT',
-              headers: {'Content-Type':'text/plain'},
-              body: sounddata.toFixed(8)
-          }, function (error, response, body) {
-              console.log(response.statusCode);
+        if (err) {
+            console.log('Light module error: '+err);
 
-              if (error) {
-                  //var res = JSON.parse(body);
-                  console.log('error '+error)
-              }
+            green.off();
 
-              if(response.statusCode == 204) {
-                  console.log('light sent');
-              }
-          });
+            setInterval(function(){
+                red.toggle();
 
-          request({
-              uri: entity.context_broker +'/v2/entities/viur-vessel/attrs/sound/value',
-              json: false,
-              method: 'PUT',
-              headers: {'Content-Type':'text/plain'},
-              body: lightdata.toFixed(8)
-          }, function (error, response, body) {
-              console.log(response.statusCode);
+            },1000);
 
-              if (error) {
-                  //var res = JSON.parse(body);
-                  console.log('error '+error)
-              }
+            throw err;
+        }
 
-              if(response.statusCode == 204) {
-                  console.log('sound sent');
-              }
-          });
+        ambient.getSoundLevel( function(err, sounddata) {
+
+            if (err) {
+                console.log('Sound module error: '+err);
+                green.off();
+
+                setInterval(function(){
+                    red.toggle();
+
+                },1000);
+
+                throw err;
+            }
+
+
+            var date = new Date();
+
+            console.log(date.toString() +"Light level:", lightdata.toFixed(8), " ", "Sound Level:", sounddata.toFixed(8));
+
+
+              request({
+                  uri: entity.context_broker +'/v2/entities/viur-vessel/attrs/light/value',
+                  json: false,
+                  method: 'PUT',
+                  headers: {'Content-Type':'text/plain'},
+                  body: sounddata.toFixed(8)
+              }, function (error, response, body) {
+
+
+                  if (error) {
+                      //var res = JSON.parse(body);
+                      console.log(response.statusCode+' request error '+error);
+                      green.off();
+
+                      setInterval(function(){
+                          amber.toggle();
+
+                      },1000);
+                  }
+
+                  if(response.statusCode == 204) {
+                      console.log('light sent');
+                   }
+              });
+
+              request({
+                  uri: entity.context_broker +'/v2/entities/viur-vessel/attrs/sound/value',
+                  json: false,
+                  method: 'PUT',
+                  headers: {'Content-Type':'text/plain'},
+                  body: lightdata.toFixed(8)
+              }, function (error, response, body) {
+                  console.log(response.statusCode);
+
+                  if (error) {
+                      if (error) {
+                          //var res = JSON.parse(body);
+                          console.log(response.statusCode+' request error '+error);
+                          setInterval(function(){
+                              amber.toggle();
+
+                          },1000);
+                      }
+                  }
+
+                  if(response.statusCode == 204) {
+                      console.log('sound sent');
+                  }
+              });
       });
     });
-  }, 15000); // The readings will happen every 15 seconds
+  }, 60000); // The readings will happen every 60 seconds
 });
 
 ambient.on('error', function (err) {
-  console.log(err);
+    if (err) {
+        red.on();
+        console.log(err);
+        throw err;
+    }
 });
 
 climate.on('ready', function(){
   setInterval(function(){
     climate.readHumidity(function(err, humid){
       climate.readTemperature('c', function(err, temp){
-        
+
         console.log('Degrees:', temp.toFixed(4) + 'C', 'Humidity:', humid.toFixed(2) + '%RH');
-        //tessel.led[3].toggle();
 
           request({
               uri: entity.context_broker +'/v2/entities/viur-vessel/attrs/temperature/value',
@@ -143,7 +190,13 @@ climate.on('ready', function(){
 
               if (error) {
                   //var res = JSON.parse(body);
-                  console.log('error '+error)
+                  console.log(response.statusCode+' request error '+error);
+                  green.off();
+
+                  setInterval(function(){
+                      amber.toggle();
+
+                  },1000);
               }
 
               if(response.statusCode == 204) {
@@ -162,19 +215,31 @@ climate.on('ready', function(){
 
               if (error) {
                   //var res = JSON.parse(body);
-                  console.log('error '+error)
+                  console.log(response.statusCode+' request error '+error);
+                  green.off();
+
+                  setInterval(function(){
+                      amber.toggle();
+
+                  },1000);
               }
+
               if(response.statusCode == 204) {
                   console.log('humidity sent');
               }
           });
       });
     });
-  }, 15000);
+      
+  }, 60000);
 });
 
 climate.on('error', function(err) {
-  console.log('error connecting module', err);
+    if (err) {
+        red.on();
+        console.log('error connecting module', err);
+        throw err;
+    }
 });
 
 console.log("Press CTRL + C to stop)");
